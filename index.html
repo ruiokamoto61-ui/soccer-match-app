@@ -19,6 +19,28 @@
 
     <main class="max-w-md mx-auto p-4 space-y-4">
 
+        <!-- 選手登録セクション -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">👤 選手登録</h2>
+            <div class="grid grid-cols-3 gap-2">
+                <div>
+                    <label class="text-xs text-slate-500">背番号</label>
+                    <input type="number" id="player-number" placeholder="10" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                </div>
+                <div class="col-span-2">
+                    <label class="text-xs text-slate-500">選手名</label>
+                    <div class="flex gap-1">
+                        <input type="text" id="player-name" placeholder="山田 太郎" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                        <button onclick="addPlayer()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 rounded text-xs font-bold whitespace-nowrap">追加</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 登録済み選手一覧 -->
+            <div id="player-list-container" class="flex flex-wrap gap-1 pt-1 max-h-24 overflow-y-auto">
+                <!-- 動的に選手タグが並びます -->
+            </div>
+        </section>
+
         <!-- 試合基本情報セクション -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
             <h2 class="font-bold text-sm text-slate-600 border-b pb-1">1. 試合情報設定</h2>
@@ -162,8 +184,8 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxN2RoVcENiRoDYy6W8lTb-kybEsNwatPLQKoqIyr4ruMqmNjlwfoT_xOBADeLG6jm4/exec";
 
-        // サンプル選手データ（必要に応じてマスタから取得または入力）
-        let players = [
+        // 選手データ（ローカルストレージ保存対応）
+        let players = JSON.parse(localStorage.getItem('soccer_players')) || [
             { id: 1, number: 10, name: "山田 太郎" },
             { id: 2, number: 7, name: "佐藤 健" },
             { id: 3, number: 9, name: "鈴木 一郎" }
@@ -176,9 +198,56 @@
         // 初期化
         window.onload = function() {
             document.getElementById('match-date').valueAsDate = new Date();
+            updatePlayerListUI();
             updatePlayerSelects();
             loadMatchHistory();
         };
+
+        // 選手の追加
+        function addPlayer() {
+            const number = document.getElementById('player-number').value;
+            const name = document.getElementById('player-name').value;
+
+            if (!number || !name) {
+                alert("背番号と選手名を入力してください！");
+                return;
+            }
+
+            players.push({ id: Date.now(), number: number, name: name });
+            saveAndRefreshPlayers();
+
+            // 入力クリア
+            document.getElementById('player-number').value = "";
+            document.getElementById('player-name').value = "";
+        }
+
+/        // 選手の削除
+        function removePlayer(id) {
+            players = players.filter(p => p.id !== id);
+            saveAndRefreshPlayers();
+        }
+
+        function saveAndRefreshPlayers() {
+            localStorage.setItem('soccer_players', JSON.stringify(players));
+            updatePlayerListUI();
+            updatePlayerSelects();
+        }
+
+        // 登録済み選手の一覧表示を更新
+        function updatePlayerListUI() {
+            const container = document.getElementById('player-list-container');
+            container.innerHTML = "";
+            if (players.length === 0) {
+                container.innerHTML = "<span class='text-xs text-slate-400'>選手が登録されていません</span>";
+                return;
+            }
+            players.forEach(p => {
+                const tag = document.createElement('span');
+                tag.className = "inline-flex items-center bg-slate-100 border border-slate-200 rounded px-2 py-0.5 text-xs text-slate-700";
+                tag.innerHTML = `[${p.number}] ${p.name} <button onclick="removePlayer(${p.id})" class="ml-1 text-rose-500 font-bold hover:text-rose-700">×</button>`;
+                container.appendChild(tag);
+            });
+        }
 
         // 選手セレクトボックスの更新
         function updatePlayerSelects() {
@@ -414,5 +483,3 @@
     </script>
 </body>
 </html>
-
-
