@@ -58,7 +58,7 @@
                 </div>
                 <div>
                     <label class="text-xs text-slate-500">試合種別</label>
-                    <select id="match-type" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                    <select id="match-type" onchange="updateMatchLabel()" class="w-full border rounded p-1.5 text-sm bg-slate-50">
                         <option value="トレマ">トレマ</option>
                         <option value="公式戦">公式戦</option>
                         <option value="練習">練習</option>
@@ -68,7 +68,7 @@
             <div class="grid grid-cols-2 gap-2">
                 <div>
                     <label class="text-xs text-slate-500">何本目</label>
-                    <select id="match-period" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                    <select id="match-period" onchange="updateMatchLabel()" class="w-full border rounded p-1.5 text-sm bg-slate-50">
                         <option value="1本目">1本目</option>
                         <option value="2本目">2本目</option>
                         <option value="3本目">3本目</option>
@@ -92,9 +92,11 @@
             </div>
         </section>
 
-        <!-- 3. タイマー＆スコアセクション -->
+        <!-- 3. タイマー＆スコアセクション（試合状態表示付き） -->
         <section class="bg-emerald-900 text-white p-4 rounded-xl shadow-md text-center space-y-3">
-            <div class="text-xs text-emerald-300 uppercase tracking-wider">Live Scoreboard</div>
+            <div id="live-match-label" class="inline-block bg-emerald-800 text-emerald-200 text-xs font-bold px-3 py-0.5 rounded-full border border-emerald-700">
+                トレマ (1本目)
+            </div>
             <div class="text-4xl font-black tracking-widest">
                 <span id="score-us">0</span> - <span id="score-them">0</span>
             </div>
@@ -112,9 +114,7 @@
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
             <h2 class="font-bold text-sm text-slate-600 border-b pb-1">3. スタメン・出場状況（リアルタイム）</h2>
             <p class="text-xs text-slate-500">試合開始時にスタメンにチェックを入れると、タイマー連動で出場時間がカウントされます。</p>
-            <div id="lineup-container" class="space-y-1.5 max-h-40 overflow-y-auto">
-                <!-- 動的にスタメン選択・出場時間が表示されます -->
-            </div>
+            <div id="lineup-container" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
         </section>
 
         <!-- 5. イベント記録セクション -->
@@ -158,7 +158,7 @@
             <!-- 交代詳細 -->
             <div id="sub-details" class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded border" style="display:none;">
                 <div>
-<label class="text-xs text-slate-500">IN (出場選手)</label>
+                    <label class="text-xs text-slate-500">IN (出場選手)</label>
                     <select id="sub-in" class="w-full border rounded p-1 text-sm bg-white"></select>
                 </div>
                 <div>
@@ -212,7 +212,6 @@
     <script>
         const GAS_URL = "https://script.google.com/macros/s/AKfycbxN2RoVcENiRoDYy6W8lTb-kybEsNwatPLQKoqIyr4ruMqmNjlwfoT_xOBADeLG6jm4/exec";
 
-        // 選手データ（ポジション・出場時間管理付き）
         let players = JSON.parse(localStorage.getItem('soccer_players')) || [
             { id: 1, number: 1, name: "GK 選手", pos: "GK" },
             { id: 2, number: 4, name: "DF 選手", pos: "DF" },
@@ -223,17 +222,15 @@
         let matchEvents = [];
         let timerSeconds = 0;
         let timerInterval = null;
-
-        // 出場状況トラッキング用 ({ playerId: { isPlaying: false, playedSeconds: 0 } })
         let playerStatus = {};
 
-        // 初期化
         window.onload = function() {
             document.getElementById('match-date').valueAsDate = new Date();
             initPlayerStatus();
             updatePlayerListUI();
             updatePlayerSelects();
             renderLineup();
+            updateMatchLabel();
             loadMatchHistory();
         };
 
@@ -243,6 +240,13 @@
                     playerStatus[p.id] = { isPlaying: false, playedSeconds: 0 };
                 }
             });
+        }
+
+        // 試合種別・本目のラベルを連動更新
+        function updateMatchLabel() {
+            const type = document.getElementById('match-type').value;
+            const period = document.getElementById('match-period').value;
+            document.getElementById('live-match-label').textContent = `${type} (${period})`;
         }
 
         // 選手の追加
@@ -266,7 +270,6 @@
             document.getElementById('player-name').value = "";
         }
 
-        // 選手の削除
         function removePlayer(id) {
             players = players.filter(p => p.id !== id);
             delete playerStatus[id];
@@ -280,7 +283,6 @@
             renderLineup();
         }
 
-        // 登録済み選手の一覧表示
         function updatePlayerListUI() {
             const container = document.getElementById('player-list-container');
             container.innerHTML = "";
@@ -296,7 +298,6 @@
             });
         }
 
-        // 各種セレクトボックスの更新
         function updatePlayerSelects() {
             const scorerSelect = document.getElementById('goal-scorer');
             const assisterSelect = document.getElementById('goal-assister');
@@ -317,7 +318,6 @@
             });
         }
 
-        // スタメン＆出場時間一覧の描画
         function renderLineup() {
             const container = document.getElementById('lineup-container');
             container.innerHTML = "";
@@ -352,7 +352,6 @@
             }
         }
 
-        // イベント種別による入力欄切り替え
         function toggleEventInputs() {
             const type = document.getElementById('event-type').value;
             const goalDetails = document.getElementById('goal-details');
@@ -368,14 +367,12 @@
             }
         }
 
-        // タイマー制御（出場時間も自動カウント）
         function startTimer() {
             if (timerInterval) return;
             timerInterval = setInterval(() => {
                 timerSeconds++;
                 updateTimerDisplay();
 
-                // プレイ中の選手の出場時間を加算
                 for (let id in playerStatus) {
                     if (playerStatus[id].isPlaying) {
                         playerStatus[id].playedSeconds++;
@@ -407,7 +404,6 @@
             document.getElementById('event-minute').value = currentMins;
         }
 
-        // イベント追加
         function addEvent() {
             const minute = document.getElementById('event-minute').value;
             const type = document.getElementById('event-type').value;
@@ -431,7 +427,6 @@
             document.getElementById('event-memo').value = "";
         }
 
-        // スコア自動集計
         function updateScore() {
             let us = 0;
             let them = 0;
@@ -443,7 +438,6 @@
             document.getElementById('score-them').textContent = them;
         }
 
-        // タイムライン描画
         function renderTimeline() {
             const container = document.getElementById('timeline-container');
             if (matchEvents.length === 0) {
@@ -473,7 +467,7 @@
             updateScore();
         }
 
-        // 試合結果の保存
+        // 試合結果の保存 ＆ 保存後に全部リセット！
         async function saveMatchData() {
             const date = document.getElementById('match-date').value;
             const matchType = document.getElementById('match-type').value;
@@ -501,6 +495,14 @@
                     body: JSON.stringify(payload)
                 });
                 alert("試合結果を保存しました！");
+
+                // ✨ 保存完了後にアプリの状態を全リセット
+                matchEvents = [];
+                renderTimeline();
+                updateScore();
+                resetTimer();
+                document.getElementById('opponent').value = "";
+                
                 loadMatchHistory();
             } catch (e) {
                 console.error(e);
@@ -508,7 +510,6 @@
             }
         }
 
-        // LINE用テキストコピー
         function copyLineText() {
             const date = document.getElementById('match-date').value;
             const matchType = document.getElementById('match-type').value;
@@ -532,7 +533,6 @@
             });
         }
 
-        // 過去の試合結果の読み込み
         async function loadMatchHistory() {
             try {
                 const res = await fetch(`${GAS_URL}?action=getHistory`);
@@ -566,7 +566,6 @@
             }
         }
 
-        // 試合結果の削除
         async function deleteMatchData(matchKey) {
             if (!confirm("本当にこの試合結果を削除しますか？")) return;
 
