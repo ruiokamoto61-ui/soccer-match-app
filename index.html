@@ -1,831 +1,418 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>サッカー戦績＆タイムライン管理</title>
-  <style>
-    :root {
-      --primary: #059669;
-      --primary-light: #d1fae5;
-      --primary-dark: #047857;
-      --bg: #f8fafc;
-      --card: #ffffff;
-      --text: #1e293b;
-      --text-muted: #64748b;
-      --border: #e2e8f0;
-      --danger: #ef4444;
-      --warning: #f59e0b;
-      --info: #3b82f6;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding-bottom: 80px; }
-
-    header {
-      background: var(--primary);
-      color: white;
-      padding: 14px 16px;
-      text-align: center;
-      font-weight: 700;
-      font-size: 1.1rem;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .ad-banner {
-      background: #f1f5f9;
-      border: 1px dashed #cbd5e1;
-      color: #94a3b8;
-      text-align: center;
-      padding: 10px;
-      margin: 10px 12px;
-      border-radius: 8px;
-      font-size: 0.75rem;
-    }
-
-    .container { max-width: 600px; margin: 0 auto; padding: 12px; }
-    .card {
-      background: var(--card);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 14px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      border: 1px solid var(--border);
-    }
-    .card-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 12px; color: var(--primary-dark); display: flex; align-items: center; gap: 6px; }
-
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-    .form-group { margin-bottom: 10px; }
-    label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
-    input, select {
-      width: 100%;
-      padding: 10px;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      font-size: 0.95rem;
-      background: #fff;
-      color: var(--text);
-    }
-    input:focus, select:focus { outline: none; border-color: var(--primary); }
-
-    .btn {
-      display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-      padding: 10px 14px; border: none; border-radius: 8px; font-weight: 700; font-size: 0.9rem;
-      cursor: pointer; transition: opacity 0.2s; width: 100%;
-    }
-    .btn:active { opacity: 0.8; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-outline { background: white; border: 1px solid var(--primary); color: var(--primary); }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-warning { background: var(--warning); color: white; }
-    .btn-info { background: var(--info); color: white; }
-    .btn-sm { padding: 6px 10px; font-size: 0.8rem; width: auto; }
-
-    .scoreboard {
-      background: linear-gradient(135deg, #065f46, #059669);
-      color: white;
-      border-radius: 14px;
-      padding: 16px;
-      text-align: center;
-      margin-bottom: 14px;
-    }
-    .score-row { display: flex; justify-content: space-around; align-items: center; margin: 10px 0; }
-    .team-name { font-size: 0.9rem; font-weight: 700; width: 35%; word-break: break-word; }
-    .score-num { font-size: 2.4rem; font-weight: 800; letter-spacing: 2px; }
-    .timer-box {
-      background: rgba(255,255,255,0.15);
-      border-radius: 8px;
-      padding: 8px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 10px;
-      margin-top: 8px;
-    }
-    .timer-display { font-size: 1.3rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-
-    .player-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-    .chip {
-      padding: 6px 10px; border-radius: 20px; font-size: 0.82rem; font-weight: 600;
-      border: 1px solid var(--border); background: #f8fafc; cursor: pointer; user-select: none;
-    }
-    .chip.selected { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
-
-    .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
-    .action-btn {
-      padding: 10px 4px; border-radius: 10px; border: 1px solid var(--border); background: #fff;
-      font-weight: 700; font-size: 0.82rem; cursor: pointer; text-align: center;
-      display: flex; flex-direction: column; align-items: center; gap: 4px;
-    }
-    .action-btn.active { border: 2px solid var(--primary); background: var(--primary-light); }
-
-    .tl-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 10px; border-bottom: 1px solid var(--border); font-size: 0.88rem;
-    }
-    .tl-item:last-child { border-bottom: none; }
-    .badge { padding: 2px 6px; border-radius: 4px; font-size: 0.72rem; font-weight: 700; color: white; }
-    .bg-goal { background: var(--primary); }
-    .bg-against { background: var(--danger); }
-    .bg-sub { background: var(--info); }
-    .bg-yellow { background: #eab308; color: #1e293b; }
-    .bg-red { background: #dc2626; }
-
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th, td { padding: 10px 6px; text-align: center; border-bottom: 1px solid var(--border); }
-    th { background: #f1f5f9; color: var(--text-muted); font-weight: 700; font-size: 0.78rem; }
-    td:nth-child(2), th:nth-child(2) { text-align: left; }
-
-    nav {
-      position: fixed; bottom: 0; left: 0; right: 0; background: white;
-      border-top: 1px solid var(--border); display: flex; justify-content: space-around;
-      padding: 8px 0; z-index: 100;
-    }
-    .nav-item {
-      display: flex; flex-direction: column; align-items: center; font-size: 0.72rem;
-      color: var(--text-muted); cursor: pointer; font-weight: 600; gap: 2px; flex: 1;
-    }
-    .nav-item.active { color: var(--primary); }
-    .nav-icon { font-size: 1.2rem; }
-
-    .section { display: none; }
-    .section.active { display: block; }
-    .loading { text-align: center; padding: 20px; color: var(--text-muted); font-size: 0.9rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>サッカー戦績・タイムライン管理アプリ</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-12">
 
-<header>⚽ チーム戦績＆タイムライン</header>
-
-<div class="ad-banner">スポンサーリンク（広告表示エリア）</div>
-
-<div class="container">
-
-  <!-- 1. 試合記録タブ -->
-  <div id="sec-record" class="section active">
-    <div class="card">
-      <div class="card-title">📋 試合情報</div>
-      <div class="form-grid">
-        <div>
-          <label>日付</label>
-          <input type="date" id="matchDate">
+    <!-- ヘッダー -->
+    <header class="bg-emerald-600 text-white p-4 shadow-md sticky top-0 z-50">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <h1 class="font-bold text-lg">⚽ サッカー戦績・タイムライン管理</h1>
+            <span id="current-time-display" class="text-xs bg-emerald-700 px-2 py-1 rounded">--:--</span>
         </div>
-        <div>
-          <label>試合種別</label>
-          <select id="matchType">
-            <option value="トレマ">トレマ（練習試合）</option>
-            <option value="公式戦">公式戦</option>
-            <option value="大会">大会</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-grid">
-        <div>
-          <label>何本目 / 試合順</label>
-          <select id="matchRound">
-            <option value="1本目">1本目</option>
-            <option value="2本目">2本目</option>
-            <option value="3本目">3本目</option>
-            <option value="4本目">4本目</option>
-            <option value="予選">予選</option>
-            <option value="決勝T">決勝T</option>
-          </select>
-        </div>
-        <div>
-          <label>人数制</label>
-          <select id="matchFormat" onchange="updateStarterLimit()">
-            <option value="11人制">11人制</option>
-            <option value="8人制">8人制</option>
-            <option value="フットサル(5人)">フットサル(5人)</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>対戦相手</label>
-        <input type="text" id="opponentName" placeholder="例：FC大阪" oninput="updateBoardOpponent()">
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">👥 スタメン選択（<span id="starterCount">0</span> / <span id="starterLimit">11</span>人）</div>
-      <div id="starterChips" class="player-chips">
-        <span style="font-size:0.8rem; color:#64748b;">選手データを読み込み中...</span>
-      </div>
-    </div>
-
-    <div class="scoreboard">
-      <div style="font-size:0.8rem; opacity:0.9;">LIVE SCOREBOARD</div>
-      <div class="score-row">
-        <div class="team-name">自チーム</div>
-        <div class="score-num"><span id="scoreFor">0</span> - <span id="scoreAgainst">0</span></div>
-        <div class="team-name" id="boardOpponent">対戦相手</div>
-      </div>
-      <div class="timer-box">
-        <select id="halfSelect" style="width:auto; padding:4px 8px; font-size:0.85rem;">
-          <option value="前半">前半</option>
-          <option value="後半">後半</option>
-          <option value="延長">延長</option>
-        </select>
-        <span class="timer-display" id="timerText">00:00</span>
-        <button class="btn btn-sm" style="background:#fff; color:#065f46;" id="timerBtn" onclick="toggleTimer()">▶ 開始</button>
-        <button class="btn btn-sm" style="background:rgba(255,255,255,0.25); color:#fff;" onclick="resetTimer()">リセット</button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">⚡ イベント記録（タップして追加）</div>
-      
-      <div class="action-grid">
-        <div class="action-btn active" id="act-goal" onclick="selectEventType('ゴール')">⚽ ゴール</div>
-        <div class="action-btn" id="act-against" onclick="selectEventType('失点')">🥅 失点</div>
-        <div class="action-btn" id="act-sub" onclick="selectEventType('交代')">🔄 交代</div>
-        <div class="action-btn" id="act-yellow" onclick="selectEventType('イエロー')">🟨 イエロー</div>
-        <div class="action-btn" id="act-red" onclick="selectEventType('レッド')">🟥 レッド</div>
-      </div>
-
-      <div class="form-grid">
-        <div>
-          <label style="display: flex; justify-content: space-between; align-items: center;">
-            <span>経過時間（分）</span>
-            <button class="btn btn-sm" style="padding: 2px 6px; font-size: 0.7rem; background: var(--primary-light); color: var(--primary-dark); border: 1px solid #10b981;" onclick="fetchCurrentTimerMinute()">⏱ 今の時間をセット</button>
-          </label>
-          <input type="number" id="eventMinute" value="0" min="0" max="120">
-        </div>
-        <div>
-          <label>メモ（PK / FK / ミドル等）</label>
-          <input type="text" id="eventMemo" placeholder="任意">
-        </div>
-      </div>
-
-      <div id="playerSelectArea">
-        <div class="form-grid">
-          <div>
-            <label id="p1Label">得点者</label>
-            <select id="player1Select"></select>
-          </div>
-          <div id="p2Wrapper">
-            <label id="p2Label">アシスト（任意）</label>
-            <select id="player2Select"></select>
-          </div>
-        </div>
-      </div>
-
-      <button class="btn btn-primary" onclick="addEvent()">＋ タイムラインに追加</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">⏱ 試合タイムライン</div>
-      <div id="currentTimeline">
-        <div style="text-align:center; color:#94a3b8; font-size:0.85rem; padding:10px;">まだイベントがありません</div>
-      </div>
-
-      <hr style="border:none; border-top:1px solid var(--border); margin:14px 0;">
-
-      <div class="form-group">
-        <label>👑 今日のMVP（マン・オブ・ザ・マッチ）</label>
-        <select id="mvpSelect"></select>
-      </div>
-
-      <button class="btn btn-primary" id="saveMatchBtn" onclick="saveMatchData()">💾 試合結果を保存する</button>
-    </div>
-  </div>
-
-  <!-- 2. 試合結果一覧タブ -->
-  <div id="sec-results" class="section">
-    <div class="card">
-      <div class="card-title">📅 過去の試合結果・戦績</div>
-      <div id="matchHistoryList" class="loading">読み込み中...</div>
-    </div>
-  </div>
-
-  <!-- 3. ランキングタブ -->
-  <div id="sec-ranking" class="section">
-    <div class="card">
-      <div class="card-title">🏆 チーム通算ランキング</div>
-      <div id="rankingTableArea" class="loading">集計中...</div>
-    </div>
-  </div>
-
-  <!-- 4. 選手登録タブ -->
-  <div id="sec-players" class="section">
-    <div class="card">
-      <div class="card-title">➕ 新規選手登録</div>
-      <div class="form-grid">
-        <div>
-          <label>姓（苗字・表示用）</label>
-          <input type="text" id="newLastName" placeholder="例：田中">
-        </div>
-        <div>
-          <label>名（名前）</label>
-          <input type="text" id="newFirstName" placeholder="例：太郎">
-        </div>
-      </div>
-      <div class="form-grid">
-        <div>
-          <label>背番号</label>
-          <input type="number" id="newNumber" placeholder="例：10">
-        </div>
-        <div>
-          <label>ポジション</label>
-          <select id="newPosition">
-            <option value="FW">FW</option>
-            <option value="MF">MF</option>
-            <option value="DF">DF</option>
-            <option value="GK">GK</option>
-          </select>
-        </div>
-      </div>
-      <button class="btn btn-primary" id="addPlayerBtn" onclick="registerPlayer()">選手を登録する</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📋 登録選手一覧</div>
-      <div id="playerListArea" class="loading">読み込み中...</div>
-    </div>
-  </div>
-
-</div>
-
-<!-- ボトムナビ -->
-<nav>
-  <div class="nav-item active" onclick="switchTab('record', this)">
-    <span class="nav-icon">⚽</span><span>試合記録</span>
-  </div>
-  <div class="nav-item" onclick="switchTab('results', this)">
-    <span class="nav-icon">📋</span><span>試合結果</span>
-  </div>
-  <div class="nav-item" onclick="switchTab('ranking', this)">
-    <span class="nav-icon">🏆</span><span>ランキング</span>
-  </div>
-  <div class="nav-item" onclick="switchTab('players', this)">
-    <span class="nav-icon">👥</span><span>選手管理</span>
-  </div>
-</nav>
-
-<script>
-  const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxN2RoVcENiRoDYy6W8lTb-kybEsNwatPLQKoqIyr4ruMqmNjlwfoT_xOBADeLG6jm4/exec";
-
-  let appData = { players: [], matches: [], timelines: [] };
-  let selectedStarters = new Set();
-  let currentEventType = 'ゴール';
-  let currentEvents = [];
-
-  let timerInterval = null;
-  let elapsedSeconds = 0;
-  let isRunning = false;
-
-  window.onload = () => {
-    document.getElementById('matchDate').valueAsDate = new Date();
-    fetchAllData();
-  };
-
-  function switchTab(tabName, el) {
-    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-    document.getElementById('sec-' + tabName).classList.add('active');
-    el.classList.add('active');
-  }
-
-  async function fetchAllData() {
-    try {
-      const res = await fetch(GAS_API_URL);
-      const data = await res.json();
-      if (data.status === 'success') {
-        appData = data;
-        renderPlayers();
-        renderMatchHistory();
-        renderRanking();
-      }
-    } catch (e) {
-      console.error(e);
-      alert("データの読み込みに失敗しました。GASのデプロイ設定を確認してください。");
-    }
-  }
-
-  function renderPlayers() {
-    const chipsArea = document.getElementById('starterChips');
-    const p1 = document.getElementById('player1Select');
-    const p2 = document.getElementById('player2Select');
-    const mvp = document.getElementById('mvpSelect');
-    const listArea = document.getElementById('playerListArea');
-
-    if (appData.players.length === 0) {
-      chipsArea.innerHTML = '<span style="font-size:0.8rem; color:#ef4444;">「選手管理」タブから選手を登録してください</span>';
-      listArea.innerHTML = '<div style="font-size:0.85rem; color:#64748b;">登録されている選手がいません</div>';
-      return;
-    }
-
-    chipsArea.innerHTML = '';
-    let optionsHtml = '<option value="">-- 選択なし --</option>';
-    let tableHtml = '<table><tr><th>背番号</th><th>名前</th><th>Pos</th><th>操作</th></tr>';
-
-    appData.players.forEach(p => {
-      const fullName = `${p.lastName} ${p.firstName}`;
-      const dispName = `${p.number ? '#' + p.number + ' ' : ''}${fullName}`;
-
-      const chip = document.createElement('div');
-      chip.className = 'chip' + (selectedStarters.has(p.id) ? ' selected' : '');
-      chip.textContent = dispName;
-      chip.onclick = () => toggleStarter(p.id, chip);
-      chipsArea.appendChild(chip);
-
-      optionsHtml += `<option value="${p.id}">${dispName} (${p.position})</option>`;
-
-      tableHtml += `
-        <tr>
-          <td>${p.number || '-'}</td>
-          <td>${fullName}</td>
-          <td>${p.position}</td>
-          <td><button class="btn btn-sm" style="background:#fee2e2; color:#ef4444; padding:4px 8px;" onclick="deletePlayer('${p.id}', '${fullName}')">削除</button></td>
-        </tr>
-      `;
-    });
-
-    tableHtml += '</table>';
-    listArea.innerHTML = tableHtml;
-    p1.innerHTML = optionsHtml;
-    p2.innerHTML = optionsHtml;
-    mvp.innerHTML = optionsHtml;
-  }
-
-  async function deletePlayer(id, name) {
-    if (!confirm(`${name} 選手を削除してもよろしいですか？`)) return;
-
-    try {
-      await fetch(GAS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'deletePlayer', playerId: id })
-      });
-      alert(`${name} 選手を削除しました！`);
-      fetchAllData();
-    } catch (e) {
-      alert('削除エラー: ' + e);
-    }
-  }
-
-  function toggleStarter(id, chipEl) {
-    if (selectedStarters.has(id)) {
-      selectedStarters.delete(id);
-      chipEl.classList.remove('selected');
-    } else {
-      selectedStarters.add(id);
-      chipEl.classList.add('selected');
-    }
-    document.getElementById('starterCount').textContent = selectedStarters.size;
-  }
-
-  function updateStarterLimit() {
-    const fmt = document.getElementById('matchFormat').value;
-    const limit = fmt.includes('11') ? 11 : fmt.includes('8') ? 8 : 5;
-    document.getElementById('starterLimit').textContent = limit;
-  }
-
-  function updateBoardOpponent() {
-    const val = document.getElementById('opponentName').value.trim();
-    document.getElementById('boardOpponent').textContent = val || '対戦相手';
-  }
-
-  function toggleTimer() {
-    const btn = document.getElementById('timerBtn');
-    if (isRunning) {
-      clearInterval(timerInterval);
-      isRunning = false;
-      btn.textContent = '▶ 再開';
-    } else {
-      isRunning = true;
-      btn.textContent = '⏸ 一時停止';
-      timerInterval = setInterval(() => {
-        elapsedSeconds++;
-        const mins = Math.floor(elapsedSeconds / 60);
-        const secs = elapsedSeconds % 60;
-        document.getElementById('timerText').textContent =
-          String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
-      }, 1000);
-    }
-  }
-
-  function resetTimer() {
-    clearInterval(timerInterval);
-    isRunning = false;
-    elapsedSeconds = 0;
-    document.getElementById('timerText').textContent = '00:00';
-    document.getElementById('eventMinute').value = 0;
-    document.getElementById('timerBtn').textContent = '▶ 開始';
-  }
-
-  // 💡 経過時間の横にあるボタンを押した時、今のタイマーの分数を自動セットする！
-  function fetchCurrentTimerMinute() {
-    const currentMins = Math.floor(elapsedSeconds / 60);
-    document.getElementById('eventMinute').value = currentMins;
-  }
-
-  function selectEventType(type) {
-    currentEventType = type;
-    document.querySelectorAll('.action-btn').forEach(b => b.classList.remove('active'));
-    const map = { 'ゴール': 'act-goal', '失点': 'act-against', '交代': 'act-sub', 'イエロー': 'act-yellow', 'レッド': 'act-red' };
-    document.getElementById(map[type]).classList.add('active');
-
-    const pArea = document.getElementById('playerSelectArea');
-    const p1Label = document.getElementById('p1Label');
-    const p2Wrap = document.getElementById('p2Wrapper');
-    const p2Label = document.getElementById('p2Label');
-
-    if (type === '失点') {
-      pArea.style.display = 'none';
-    } else {
-      pArea.style.display = 'block';
-      if (type === 'ゴール') {
-        p1Label.textContent = '得点者';
-        p2Wrap.style.display = 'block';
-        p2Label.textContent = 'アシスト（任意）';
-      } else if (type === '交代') {
-        p1Label.textContent = 'IN（入る選手）';
-        p2Wrap.style.display = 'block';
-        p2Label.textContent = 'OUT（出る選手）';
-      } else {
-        p1Label.textContent = '対象選手';
-        p2Wrap.style.display = 'none';
-      }
-    }
-  }
-
-  function getPlayerName(id) {
-    if (!id) return '';
-    const p = appData.players.find(x => x.id === id);
-    return p ? `${p.lastName} ${p.firstName}` : '';
-  }
-
-  function addEvent() {
-    const half = document.getElementById('halfSelect').value;
-    const minute = Number(document.getElementById('eventMinute').value) || 0;
-    const memo = document.getElementById('eventMemo').value.trim();
-    const p1 = document.getElementById('player1Select').value;
-    const p2 = document.getElementById('player2Select').value;
-
-    if (currentEventType !== '失点' && !p1) {
-      alert('選手を選択してください！');
-      return;
-    }
-
-    currentEvents.push({
-      half,
-      minute,
-      eventType: currentEventType,
-      player1Id: currentEventType === '失点' ? '' : p1,
-      player2Id: (currentEventType === 'ゴール' || currentEventType === '交代') ? p2 : '',
-      memo
-    });
-
-    currentEvents.sort((a, b) => a.minute - b.minute);
-    document.getElementById('eventMemo').value = '';
-    renderCurrentTimeline();
-  }
-
-  function removeEvent(index) {
-    currentEvents.splice(index, 1);
-    renderCurrentTimeline();
-  }
-
-  function renderCurrentTimeline() {
-    const container = document.getElementById('currentTimeline');
-    let goalsFor = 0;
-    let goalsAgainst = 0;
-
-    if (currentEvents.length === 0) {
-      container.innerHTML = '<div style="text-align:center; color:#94a3b8; font-size:0.85rem; padding:10px;">まだイベントがありません</div>';
-      document.getElementById('scoreFor').textContent = 0;
-      document.getElementById('scoreAgainst').textContent = 0;
-      return;
-    }
-
-    let html = '';
-    currentEvents.forEach((ev, idx) => {
-      if (ev.eventType === 'ゴール') goalsFor++;
-      if (ev.eventType === '失点') goalsAgainst++;
-
-      const badgeClass = ev.eventType === 'ゴール' ? 'bg-goal' :
-                         ev.eventType === '失点' ? 'bg-against' :
-                         ev.eventType === '交代' ? 'bg-sub' :
-                         ev.eventType === 'イエロー' ? 'bg-yellow' : 'bg-red';
-
-      let detail = '';
-      if (ev.eventType === 'ゴール') {
-        detail = `${getPlayerName(ev.player1Id)}${ev.player2Id ? ' (A: ' + getPlayerName(ev.player2Id) + ')' : ''}`;
-      } else if (ev.eventType === '交代') {
-        detail = `IN: ${getPlayerName(ev.player1Id)} / OUT: ${getPlayerName(ev.player2Id)}`;
-      } else if (ev.eventType !== '失点') {
-        detail = getPlayerName(ev.player1Id);
-      }
-
-      html += `
-        <div class="tl-item">
-          <div>
-            <strong>${ev.half} ${ev.minute}分</strong>
-            <span class="badge ${badgeClass}">${ev.eventType}</span>
-            <span>${detail}</span>
-            ${ev.memo ? `<span style="color:#64748b; font-size:0.78rem;">(${ev.memo})</span>` : ''}
-          </div>
-          <button class="btn btn-sm" style="background:#fee2e2; color:#ef4444;" onclick="removeEvent(${idx})">削除</button>
-        </div>
-      `;
-    });
-
-    container.innerHTML = html;
-    document.getElementById('scoreFor').textContent = goalsFor;
-    document.getElementById('scoreAgainst').textContent = goalsAgainst;
-  }
-
-  async function saveMatchData() {
-    const opponent = document.getElementById('opponentName').value.trim();
-    if (!opponent) {
-      alert('対戦相手を入力してください！');
-      return;
-    }
-
-    const btn = document.getElementById('saveMatchBtn');
-    btn.disabled = true;
-    btn.textContent = '保存中...';
-
-    const payload = {
-      action: 'saveMatch',
-      date: document.getElementById('matchDate').value,
-      type: document.getElementById('matchType').value,
-      round: document.getElementById('matchRound').value,
-      format: document.getElementById('matchFormat').value,
-      opponent: opponent,
-      goalsFor: Number(document.getElementById('scoreFor').textContent),
-      goalsAgainst: Number(document.getElementById('scoreAgainst').textContent),
-      starters: Array.from(selectedStarters),
-      mvpId: document.getElementById('mvpSelect').value,
-      events: currentEvents
-    };
-
-    try {
-      await fetch(GAS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify(payload)
-      });
-      alert('試合結果をスプレッドシートに保存しました！');
-      currentEvents = [];
-      selectedStarters.clear();
-      resetTimer();
-      renderCurrentTimeline();
-      fetchAllData();
-    } catch (e) {
-      alert('保存中にエラーが発生しました: ' + e);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '💾 試合結果を保存する';
-    }
-  }
-
-  async function registerPlayer() {
-    const lastName = document.getElementById('newLastName').value.trim();
-    const firstName = document.getElementById('newFirstName').value.trim();
-    const number = document.getElementById('newNumber').value.trim();
-    const position = document.getElementById('newPosition').value;
-
-    if (!lastName) {
-      alert('姓（苗字）は必須です！');
-      return;
-    }
-
-    const btn = document.getElementById('addPlayerBtn');
-    btn.disabled = true;
-    btn.textContent = '登録中...';
-
-    try {
-      await fetch(GAS_API_URL, {
-        method: 'POST',
-        body: JSON.stringify({
-          action: 'addPlayer',
-          lastName,
-          firstName,
-          number,
-          position
-        })
-      });
-      alert(`${lastName} 選手を登録しました！`);
-      document.getElementById('newLastName').value = '';
-      document.getElementById('newFirstName').value = '';
-      document.getElementById('newNumber').value = '';
-      fetchAllData();
-    } catch (e) {
-      alert('登録エラー: ' + e);
-    } finally {
-      btn.disabled = false;
-      btn.textContent = '選手を登録する';
-    }
-  }
-
-  function renderMatchHistory() {
-    const list = document.getElementById('matchHistoryList');
-    if (appData.matches.length === 0) {
-      list.innerHTML = '<div style="text-align:center; color:#64748b;">まだ試合記録がありません</div>';
-      return;
-    }
-
-    let html = '';
-    appData.matches.forEach(m => {
-      const evs = appData.timelines.filter(t => t.matchId === m.matchId);
-      const resBadge = m.goalsFor > m.goalsAgainst ? '<span class="badge bg-goal">WIN</span>' :
-                       m.goalsFor < m.goalsAgainst ? '<span class="badge bg-against">LOSE</span>' :
-                       '<span class="badge" style="background:#64748b;">DRAW</span>';
-
-      let evHtml = '';
-      evs.forEach(e => {
-        const p1Name = getPlayerName(e.player1Id);
-        const p2Name = getPlayerName(e.player2Id);
-        let text = `${e.half}${e.minute}分 [${e.eventType}] `;
-        if (e.eventType === 'ゴール') text += `${p1Name}${p2Name ? '(A:' + p2Name + ')' : ''}`;
-        else if (e.eventType === '交代') text += `IN:${p1Name} / OUT:${p2Name}`;
-        else if (e.eventType !== '失点') text += p1Name;
-        evHtml += `<div style="font-size:0.8rem; color:#475569; margin-top:2px;">・${text}</div>`;
-      });
-
-      const shareText = `【試合結果】${m.date} ${m.type}(${m.round})\n自チーム ${m.goalsFor} - ${m.goalsAgainst} ${m.opponent}\n${m.mvpId ? '👑MVP: ' + getPlayerName(m.mvpId) : ''}`;
-
-      html += `
-        <div style="border:1px solid var(--border); border-radius:10px; padding:12px; margin-bottom:10px;">
-          <div style="font-size:0.78rem; color:#64748b;">${m.date} ｜ ${m.type}（${m.round}・${m.format}）</div>
-          <div style="font-size:1.1rem; font-weight:800; margin:4px 0;">
-            ${resBadge} 自チーム ${m.goalsFor} - ${m.goalsAgainst} ${m.opponent}
-          </div>
-          ${m.mvpId ? `<div style="font-size:0.82rem; color:#d97706; font-weight:700;">👑 MVP: ${getPlayerName(m.mvpId)}</div>` : ''}
-          <div style="margin-top:6px;">${evHtml}</div>
-          <button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick='copyShareText(${JSON.stringify(shareText)})'>📋 結果をコピーしてLINE共有</button>
-        </div>
-      `;
-    });
-    list.innerHTML = html;
-  }
-
-  function copyShareText(text) {
-    navigator.clipboard.writeText(text).then(() => {
-      alert('試合結果をコピーしました！LINEに貼り付けて共有できます。');
-    });
-  }
-
-  function renderRanking() {
-    const area = document.getElementById('rankingTableArea');
-    if (appData.players.length === 0) {
-      area.innerHTML = '<div style="text-align:center; color:#64748b;">選手データがありません</div>';
-      return;
-    }
-
-    const stats = {};
-    appData.players.forEach(p => {
-      stats[p.id] = { name: `${p.lastName} ${p.firstName}`, goals: 0, assists: 0, apps: 0, mvp: 0 };
-    });
-
-    appData.matches.forEach(m => {
-      const played = new Set(m.starters);
-      appData.timelines.filter(t => t.matchId === m.matchId && t.eventType === '交代').forEach(sub => {
-        if (sub.player1Id) played.add(sub.player1Id);
-      });
-      played.forEach(pid => { if (stats[pid]) stats[pid].apps++; });
-      if (m.mvpId && stats[m.mvpId]) stats[m.mvpId].mvp++;
-    });
-
-    appData.timelines.forEach(t => {
-      if (t.eventType === 'ゴール') {
-        if (t.player1Id && stats[t.player1Id]) stats[t.player1Id].goals++;
-        if (t.player2Id && stats[t.player2Id]) stats[t.player2Id].assists++;
-      }
-    });
-
-    const sorted = Object.values(stats).sort((a, b) => (b.goals - a.goals) || (b.assists - a.assists));
-
-    let html = `
-      <table>
-        <tr>
-          <th>順位</th>
-          <th>選手</th>
-          <th>⚽得点</th>
-          <th>👟A</th>
-          <th>出場</th>
-          <th>👑MVP</th>
-        </tr>
-    `;
-    sorted.forEach((s, i) => {
-      html += `
-        <tr>
-          <td><strong>${i + 1}</strong></td>
-          <td>${s.name}</td>
-          <td><strong>${s.goals}</strong></td>
-          <td>${s.assists}</td>
-          <td>${s.apps}</td>
-          <td>${s.mvp}</td>
-        </tr>
-      `;
-    });
-    html += '</table>';
-    area.innerHTML = html;
-  }
-</script>
-
+    </header>
+
+    <main class="max-w-md mx-auto p-4 space-y-4">
+
+        <!-- 試合基本情報セクション -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">1. 試合情報設定</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-xs text-slate-500">日付</label>
+                    <input type="date" id="match-date" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">試合種別</label>
+                    <select id="match-type" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                        <option value="トレマ">トレマ</option>
+                        <option value="公式戦">公式戦</option>
+                        <option value="練習">練習</option>
+                    </select>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-xs text-slate-500">何本目</label>
+                    <select id="match-period" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                        <option value="1本目">1本目</option>
+                        <option value="2本目">2本目</option>
+                        <option value="3本目">3本目</option>
+                        <option value="4本目">4本目</option>
+                        <option value="前半">前半</option>
+                        <option value="後半">後半</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">形式</label>
+                    <select id="match-format" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                        <option value="11">11人制</option>
+                        <option value="8">8人制</option>
+                        <option value="5">フットサル</option>
+                    </select>
+                </div>
+            </div>
+            <div>
+                <label class="text-xs text-slate-500">対戦相手</label>
+                <input type="text" id="opponent" placeholder="例: ○○FC" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+            </div>
+        </section>
+
+        <!-- タイマー＆スコアセクション -->
+        <section class="bg-emerald-900 text-white p-4 rounded-xl shadow-md text-center space-y-3">
+            <div class="text-xs text-emerald-300 uppercase tracking-wider">Live Scoreboard</div>
+            <div class="text-4xl font-black tracking-widest">
+                <span id="score-us">0</span> - <span id="score-them">0</span>
+            </div>
+            <div class="flex justify-center items-center space-x-3">
+                <span id="timer-display" class="text-3xl font-mono font-bold bg-emerald-950 px-4 py-1 rounded border border-emerald-700">00:00</span>
+            </div>
+            <div class="flex justify-center gap-2 pt-1">
+                <button onclick="startTimer()" class="bg-emerald-500 hover:bg-emerald-400 text-white px-3 py-1 rounded text-xs font-bold">開始</button>
+                <button onclick="pauseTimer()" class="bg-amber-600 hover:bg-amber-500 text-white px-3 py-1 rounded text-xs font-bold">一時停止</button>
+                <button onclick="resetTimer()" class="bg-rose-700 hover:bg-rose-600 text-white px-3 py-1 rounded text-xs font-bold">リセット</button>
+            </div>
+        </section>
+
+        <!-- イベント記録セクション -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">2. イベント記録</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <div>
+                    <label class="text-xs text-slate-500">経過時間 (分)</label>
+                    <div class="flex gap-1">
+                        <input type="number" id="event-minute" min="0" max="90" value="0" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+                        <button onclick="hookCurrentMinute()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-2 rounded text-xs font-bold whitespace-nowrap">今をセット</button>
+                    </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">イベント種別</label>
+                    <select id="event-type" class="w-full border rounded p-1.5 text-sm bg-slate-50" onchange="toggleEventInputs()">
+                        <option value="得点">⚽ 得点</option>
+                        <option value="失点">🥅 失点</option>
+                        <option value="交代">🔄 交代</option>
+                        <option value="イエローカード">🟨 イエロー</option>
+                        <option value="レッドカード">🟥 レッド</option>
+                        <option value="メモ">📝 メモ</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 得点詳細（得点者・アシスト） -->
+            <div id="goal-details" class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded border">
+                <div>
+                    <label class="text-xs text-slate-500">得点者</label>
+                    <select id="goal-scorer" class="w-full border rounded p-1 text-sm bg-white"></select>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-500">アシスト</label>
+                    <select id="goal-assister" class="w-full border rounded p-1 text-sm bg-white">
+                        <option value="">なし</option>
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-xs text-slate-500">詳細・メモ</label>
+                <input type="text" id="event-memo" placeholder="例: ニアサイドへシュート / 交代選手など" class="w-full border rounded p-1.5 text-sm bg-slate-50">
+            </div>
+
+            <button onclick="addEvent()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-sm shadow">
+                イベントを追加する
+            </button>
+        </section>
+
+        <!-- タイムライン表示 -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">3. 試合タイムライン</h2>
+            <div id="timeline-container" class="space-y-2 max-h-60 overflow-y-auto text-sm">
+                <p class="text-slate-400 text-center py-2 text-xs">まだイベントはありません</p>
+            </div>
+        </section>
+
+        <!-- 試合保存＆共有 -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-2">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">4. 試合の保存・LINE共有</h2>
+            <div class="grid grid-cols-2 gap-2">
+                <button onclick="saveMatchData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-sm shadow">
+                    試合結果を保存
+                </button>
+                <button onclick="copyLineText()" class="bg-emerald-500 hover:bg-emerald-400 text-white font-bold py-2 rounded text-sm shadow">
+                    LINE用テキストコピー
+                </button>
+            </div>
+        </section>
+
+        <!-- 過去の試合結果一覧（削除機能付き） -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+            <h2 class="font-bold text-sm text-slate-600 border-b pb-1">5. 過去の試合結果一覧</h2>
+            <div id="match-history-container" class="space-y-2 max-h-60 overflow-y-auto">
+                <p class="text-slate-400 text-center py-2 text-xs">読み込み中...</p>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- JavaScript ロジック -->
+    <script>
+        const GAS_URL = "https://script.google.com/macros/s/AKfycbxN2RoVcENiRoDYy6W8lTb-kybEsNwatPLQKoqIyr4ruMqmNjlwfoT_xOBADeLG6jm4/exec";
+
+        // サンプル選手データ（必要に応じてマスタから取得または入力）
+        let players = [
+            { id: 1, number: 10, name: "山田 太郎" },
+            { id: 2, number: 7, name: "佐藤 健" },
+            { id: 3, number: 9, name: "鈴木 一郎" }
+        ];
+
+        let matchEvents = [];
+        let timerSeconds = 0;
+        let timerInterval = null;
+
+        // 初期化
+        window.onload = function() {
+            document.getElementById('match-date').valueAsDate = new Date();
+            updatePlayerSelects();
+            loadMatchHistory();
+        };
+
+        // 選手セレクトボックスの更新
+        function updatePlayerSelects() {
+            const scorerSelect = document.getElementById('goal-scorer');
+            const assisterSelect = document.getElementById('goal-assister');
+            
+            scorerSelect.innerHTML = "";
+            assisterSelect.innerHTML = "<option value=''>なし</option>";
+
+            players.forEach(p => {
+                const opt = `<option value="${p.number}: ${p.name}">[${p.number}] ${p.name}</option>`;
+                scorerSelect.innerHTML += opt;
+                assisterSelect.innerHTML += opt;
+            });
+        }
+
+        // イベント種別による入力欄切り替え
+        function toggleEventInputs() {
+            const type = document.getElementById('event-type').value;
+            const goalDetails = document.getElementById('goal-details');
+            if (type === '得点') {
+                goalDetails.style.display = 'grid';
+            } else {
+                goalDetails.style.display = 'none';
+            }
+        }
+
+        // タイマー制御
+        function startTimer() {
+            if (timerInterval) return;
+            timerInterval = setInterval(() => {
+                timerSeconds++;
+                updateTimerDisplay();
+            }, 1000);
+        }
+
+        function pauseTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function resetTimer() {
+            pauseTimer();
+            timerSeconds = 0;
+            updateTimerDisplay();
+        }
+
+        function updateTimerDisplay() {
+            const mins = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
+            const secs = String(timerSeconds % 60).padStart(2, '0');
+            document.getElementById('timer-display').textContent = `${mins}:${secs}`;
+        }
+
+        function hookCurrentMinute() {
+            const currentMins = Math.floor(timerSeconds / 60);
+            document.getElementById('event-minute').value = currentMins;
+        }
+
+        // イベント追加
+        function addEvent() {
+            const minute = document.getElementById('event-minute').value;
+            const type = document.getElementById('event-type').value;
+            const memo = document.getElementById('event-memo').value;
+            
+            let details = memo;
+            if (type === '得点') {
+                const scorer = document.getElementById('goal-scorer').value;
+                const assister = document.getElementById('goal-assister').value;
+                details = `得点者: ${scorer}` + (assister ? ` (A: ${assister})` : "") + (memo ? ` - ${memo}` : "");
+            }
+
+            matchEvents.push({ minute, type, details });
+            renderTimeline();
+            updateScore();
+
+            // 入力クリア
+            document.getElementById('event-memo').value = "";
+        }
+
+        // スコア自動集計
+        function updateScore() {
+            let us = 0;
+            let them = 0;
+            matchEvents.forEach(e => {
+                if (e.type === '得点') us++;
+                if (e.type === '失点') them++;
+            });
+            document.getElementById('score-us').textContent = us;
+            document.getElementById('score-them').textContent = them;
+        }
+
+        // タイムライン描画
+        function renderTimeline() {
+            const container = document.getElementById('timeline-container');
+            if (matchEvents.length === 0) {
+                container.innerHTML = "<p class='text-slate-400 text-center py-2 text-xs'>まだイベントはありません</p>";
+                return;
+            }
+
+            container.innerHTML = "";
+            matchEvents.forEach((e, index) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center bg-slate-50 p-2 rounded border text-xs";
+                div.innerHTML = `
+                    <div>
+                        <span class="font-bold text-emerald-700">${e.minute}分</span>
+                        <span class="font-bold ml-2">${e.type}</span>
+                        <span class="text-slate-600 ml-1">${e.details}</span>
+                    </div>
+                    <button onclick="removeEvent(${index})" class="text-rose-500 hover:underline">削除</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function removeEvent(index) {
+            matchEvents.splice(index, 1);
+            renderTimeline();
+            updateScore();
+        }
+
+        // 試合結果の保存
+        async function saveMatchData() {
+            const date = document.getElementById('match-date').value;
+            const matchType = document.getElementById('match-type').value;
+            const period = document.getElementById('match-period').value;
+            const opponent = document.getElementById('opponent').value || "未設定";
+            const us = document.getElementById('score-us').textContent;
+            const them = document.getElementById('score-them').textContent;
+            
+            if (!confirm("この試合結果を保存しますか？")) return;
+
+            const payload = {
+                action: "saveMatch",
+                timestamp: new Date().getTime(),
+                date: date,
+                matchType: `${matchType} (${period})`,
+                opponent: opponent,
+                score: `${us} - ${them}`
+            };
+
+            try {
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                alert("試合結果を保存しました！");
+                loadMatchHistory();
+            } catch (e) {
+                console.error(e);
+                alert("保存に失敗しました。");
+            }
+        }
+
+        // LINE用テキストコピー
+        function copyLineText() {
+            const date = document.getElementById('match-date').value;
+            const matchType = document.getElementById('match-type').value;
+            const period = document.getElementById('match-period').value;
+            const opponent = document.getElementById('opponent').value || "未設定";
+            const us = document.getElementById('score-us').textContent;
+            const them = document.getElementById('score-them').textContent;
+
+            let text = `⚽ 試合結果速報\n【日時】${date}\n【種別】${matchType} ${period}\n【対戦】vs ${opponent}\n【スコア】${us} - ${them}\n\n【タイムライン】\n`;
+            
+            if (matchEvents.length === 0) {
+                text += "記録なし";
+            } else {
+                matchEvents.forEach(e => {
+                    text += `${e.minute}分: ${e.type} ${e.details}\n`;
+                });
+            }
+
+            navigator.clipboard.writeText(text).then(() => {
+                alert("LINE用テキストをコピーしました！");
+            });
+        }
+
+        // 過去の試合結果の読み込み
+        async function loadMatchHistory() {
+            try {
+                const res = await fetch(`${GAS_URL}?action=getHistory`);
+                const historyList = await res.json();
+                
+                const container = document.getElementById("match-history-container");
+                container.innerHTML = "";
+                
+                if (historyList.length === 0) {
+                    container.innerHTML = "<p class='text-slate-400 text-center py-2 text-xs'>保存された試合結果はありません。</p>";
+                    return;
+                }
+                
+                historyList.forEach(match => {
+                    const card = document.createElement("div");
+                    card.className = "border p-2.5 rounded flex justify-between items-center bg-slate-50 text-xs";
+                    card.innerHTML = `
+                        <div>
+                            <p class="font-bold text-slate-700">${match.date} (${match.matchType}) vs ${match.opponent}</p>
+                            <p class="text-slate-500">スコア: <span class="font-bold text-slate-700">${match.score}</span></p>
+                        </div>
+                        <button onclick="deleteMatchData('${match.timestamp}')" class="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1 rounded font-bold transition">
+                            削除
+                        </button>
+                    `;
+                    container.appendChild(card);
+                });
+            } catch (e) {
+                console.error(e);
+                document.getElementById("match-history-container").innerHTML = "<p class='text-rose-500 text-center text-xs'>履歴の読み込みに失敗しました</p>";
+            }
+        }
+
+        // 試合結果の削除
+        async function deleteMatchData(matchKey) {
+            if (!confirm("本当にこの試合結果を削除しますか？")) return;
+
+            try {
+                await fetch(GAS_URL, {
+                    method: "POST",
+                    mode: "no-cors",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "deleteMatch", matchKey: matchKey })
+                });
+                alert("試合結果を削除しました！");
+                loadMatchHistory();
+            } catch (e) {
+                console.error(e);
+                alert("削除に失敗しました。");
+            }
+        }
+    </script>
 </body>
 </html>
+
+
