@@ -44,7 +44,6 @@
             <button onclick="addPlayer()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1.5 rounded text-xs font-bold shadow">
                 選手を追加する
             </button>
-            <!-- 登録済み選手一覧 -->
             <div id="player-list-container" class="flex flex-wrap gap-1 pt-1 max-h-24 overflow-y-auto"></div>
         </section>
 
@@ -92,7 +91,7 @@
             </div>
         </section>
 
-        <!-- 3. タイマー＆スコアセクション（試合状態表示付き） -->
+        <!-- 3. タイマー＆スコアセクション -->
         <section class="bg-emerald-900 text-white p-4 rounded-xl shadow-md text-center space-y-3">
             <div id="live-match-label" class="inline-block bg-emerald-800 text-emerald-200 text-xs font-bold px-3 py-0.5 rounded-full border border-emerald-700">
                 トレマ (1本目)
@@ -113,7 +112,6 @@
         <!-- 4. スタメン＆出場時間管理セクション -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
             <h2 class="font-bold text-sm text-slate-600 border-b pb-1">3. スタメン・出場状況（リアルタイム）</h2>
-            <p class="text-xs text-slate-500">試合開始時にスタメンにチェックを入れると、タイマー連動で出場時間がカウントされます。</p>
             <div id="lineup-container" class="space-y-1.5 max-h-40 overflow-y-auto"></div>
         </section>
 
@@ -141,7 +139,6 @@
                 </div>
             </div>
 
-            <!-- 得点詳細（得点者・アシスト） -->
             <div id="goal-details" class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded border">
                 <div>
                     <label class="text-xs text-slate-500">得点者</label>
@@ -155,7 +152,6 @@
                 </div>
             </div>
 
-            <!-- 交代詳細 -->
             <div id="sub-details" class="grid grid-cols-2 gap-2 bg-slate-50 p-2 rounded border" style="display:none;">
                 <div>
                     <label class="text-xs text-slate-500">IN (出場選手)</label>
@@ -198,11 +194,11 @@
             </div>
         </section>
 
-        <!-- 8. 過去の試合結果一覧（削除機能付き） -->
+        <!-- 8. 過去の試合結果一覧（ブラウザ保存版） -->
         <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
             <h2 class="font-bold text-sm text-slate-600 border-b pb-1">7. 過去の試合結果一覧</h2>
             <div id="match-history-container" class="space-y-2 max-h-60 overflow-y-auto">
-                <p class="text-slate-400 text-center py-2 text-xs">読み込み中...</p>
+                <p class="text-slate-400 text-center py-2 text-xs">保存された試合はありません</p>
             </div>
         </section>
 
@@ -210,8 +206,6 @@
 
     <!-- JavaScript ロジック -->
     <script>
-        const GAS_URL = "https://script.google.com/macros/s/AKfycbxN2RoVcENiRoDYy6W8lTb-kybEsNwatPLQKoqIyr4ruMqmNjlwfoT_xOBADeLG6jm4/exec";
-
         let players = JSON.parse(localStorage.getItem('soccer_players')) || [
             { id: 1, number: 1, name: "GK 選手", pos: "GK" },
             { id: 2, number: 4, name: "DF 選手", pos: "DF" },
@@ -242,14 +236,12 @@
             });
         }
 
-        // 試合種別・本目のラベルを連動更新
         function updateMatchLabel() {
             const type = document.getElementById('match-type').value;
             const period = document.getElementById('match-period').value;
             document.getElementById('live-match-label').textContent = `${type} (${period})`;
         }
 
-        // 選手の追加
         function addPlayer() {
             const number = document.getElementById('player-number').value;
             const name = document.getElementById('player-name').value;
@@ -467,8 +459,8 @@
             updateScore();
         }
 
-        // 試合結果の保存 ＆ 保存後に全部リセット！
-        async function saveMatchData() {
+        // 試合結果の保存（ローカルストレージ版：エラーなしで即座に保存・リセット）
+        function saveMatchData() {
             const date = document.getElementById('match-date').value;
             const matchType = document.getElementById('match-type').value;
             const period = document.getElementById('match-period').value;
@@ -478,36 +470,29 @@
             
             if (!confirm("この試合結果を保存しますか？")) return;
 
-            const payload = {
-                action: "saveMatch",
-                timestamp: new Date().getTime(),
+            let history = JSON.parse(localStorage.getItem('soccer_match_history')) || [];
+            
+            const newMatch = {
+                timestamp: Date.now(),
                 date: date,
                 matchType: `${matchType} (${period})`,
                 opponent: opponent,
                 score: `${us} - ${them}`
             };
 
-            try {
-                await fetch(GAS_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
-                alert("試合結果を保存しました！");
+            history.unshift(newMatch); // 新しいものを上に追加
+            localStorage.setItem('soccer_match_history', JSON.stringify(history));
 
-                // ✨ 保存完了後にアプリの状態を全リセット
-                matchEvents = [];
-                renderTimeline();
-                updateScore();
-                resetTimer();
-                document.getElementById('opponent').value = "";
-                
-                loadMatchHistory();
-            } catch (e) {
-                console.error(e);
-                alert("保存に失敗しました。");
-            }
+            alert("試合結果を保存しました！");
+
+            // 状態を全リセット
+            matchEvents = [];
+            renderTimeline();
+            updateScore();
+            resetTimer();
+            document.getElementById('opponent').value = "";
+            
+            loadMatchHistory();
         }
 
         function copyLineText() {
@@ -533,55 +518,43 @@
             });
         }
 
-        async function loadMatchHistory() {
-            try {
-                const res = await fetch(`${GAS_URL}?action=getHistory`);
-                const historyList = await res.json();
-                
-                const container = document.getElementById("match-history-container");
-                container.innerHTML = "";
-                
-                if (historyList.length === 0) {
-                    container.innerHTML = "<p class='text-slate-400 text-center py-2 text-xs'>保存された試合結果はありません。</p>";
-                    return;
-                }
-                
-                historyList.forEach(match => {
-                    const card = document.createElement("div");
-                    card.className = "border p-2.5 rounded flex justify-between items-center bg-slate-50 text-xs";
-                    card.innerHTML = `
-                        <div>
-                            <p class="font-bold text-slate-700">${match.date} (${match.matchType}) vs ${match.opponent}</p>
-                            <p class="text-slate-500">スコア: <span class="font-bold text-slate-700">${match.score}</span></p>
-                        </div>
-                        <button onclick="deleteMatchData('${match.timestamp}')" class="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1 rounded font-bold transition">
-                            削除
-                        </button>
-                    `;
-                    container.appendChild(card);
-                });
-            } catch (e) {
-                console.error(e);
-                document.getElementById("match-history-container").innerHTML = "<p class='text-rose-500 text-center text-xs'>履歴の読み込みに失敗しました</p>";
+        // 過去の試合結果の読み込み（ローカルストレージ版）
+        function loadMatchHistory() {
+            const history = JSON.parse(localStorage.getItem('soccer_match_history')) || [];
+            const container = document.getElementById("match-history-container");
+            container.innerHTML = "";
+            
+            if (history.length === 0) {
+                container.innerHTML = "<p class='text-slate-400 text-center py-2 text-xs'>保存された試合はありません。</p>";
+                return;
             }
+            
+            history.forEach(match => {
+                const card = document.createElement("div");
+                card.className = "border p-2.5 rounded flex justify-between items-center bg-slate-50 text-xs";
+                card.innerHTML = `
+                    <div>
+                        <p class="font-bold text-slate-700">${match.date} (${match.matchType}) vs ${match.opponent}</p>
+                        <p class="text-slate-500">スコア: <span class="font-bold text-slate-700">${match.score}</span></p>
+                    </div>
+                    <button onclick="deleteMatchData('${match.timestamp}')" class="bg-rose-500 hover:bg-rose-600 text-white px-2.5 py-1 rounded font-bold transition">
+                        削除
+                    </button>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        async function deleteMatchData(matchKey) {
+        // 試合結果の削除（ローカルストレージ版）
+        function deleteMatchData(timestamp) {
             if (!confirm("本当にこの試合結果を削除しますか？")) return;
 
-            try {
-                await fetch(GAS_URL, {
-                    method: "POST",
-                    mode: "no-cors",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "deleteMatch", matchKey: matchKey })
-                });
-                alert("試合結果を削除しました！");
-                loadMatchHistory();
-            } catch (e) {
-                console.error(e);
-                alert("削除に失敗しました。");
-            }
+            let history = JSON.parse(localStorage.getItem('soccer_match_history')) || [];
+            history = history.filter(m => String(m.timestamp) !== String(timestamp));
+            localStorage.setItem('soccer_match_history', JSON.stringify(history));
+
+            alert("試合結果を削除しました！");
+            loadMatchHistory();
         }
     </script>
 </body>
